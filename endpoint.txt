@@ -1,0 +1,250 @@
+
+Bearbeitung der Feldkarten des Endpointtaggers
+==============================================
+
+Die Feldkarten werden wie gemessen in Files map**.map abgelegt
+Dort ist sind die Feldpunkte in der Reihenfolge gemessen:
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.............
+.............................................................
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+wobei hier die Zeilen-Zahl der z-Richtung im Labor entspricht, d.h.
+eine Zeile beschreibt die Bewegung || zur Eintrittskante des Magneten.
+Entlang der Spalten bewegt man sich entgegen der Strahlrichtung.
+Die Liste enthaelt dann
+
+3 Kommentarzeilen (siehe Beschreibung in convert_map.f)
+dann Zeilen mit
+Index1  Index2  Feldwert/Gauss
+Index1 bewegt sich entgegen der z-Richtung
+Index2 bewegt sich in x-Richtung (Ablenkrichtung)
+Die Indices entsprechen der Anzahl der Inkremente der Koordinatenmaschine
+gezaehlt ab einem Nullpunkt der Maschine. Ein Inkrement entspricht
+0.2211 mm.
+
+Die Original Indices, Iox, Ioz, der Messaparatur laufen in x-Richtung,
+also || zur Eintrittskante des Magneten:
+
+                Iox von  940   bis  4890
+                Ioz von -300   bis -2950
+				
+Dabei steht Ioz in der ersten Spalte von map**.map und
+Iox in der zweiten. Diese Indizes haben ein Inkrement von 50.
+Man kann sie also reduzieren durch:
+
+                Ix = (Iox - 940)/50 + 1
+		Iz = (Ioz - (-2950))/50 + 1
+				
+		        1 <= Ix <= 80
+		        1 <= Iz <= 54
+								
+Iozr laeuft in der falschen Richtung, also entgegengesetzt zu z
+im Labor.
+Richtungsumkehr
+
+                Iz= 54 - Iz +1
+		
+
+Mit Hilfe des Programms convert_map.f kann ein File map.map in einen File 
+cmap**.map konvertiert werden. Das Programm liefert zunaechst einen 
+Ergebnisfile fort.10, der in cmap**.map kopiert werden muss. 
+Der File map.map muss gegebenenfalls von map**.map kopiert werden. 
+Dabei steht ** fuer den nominellen Feldwert.
+** = 10 bedeutet: der maximale Feldwert liegt in der Naehe von 1T.
+Der File cmap**.map enthaelt eine Kommentarzeile mit
+Maximum des x-Index (entspricht der Zeilenlaenge)
+Maximun des z-Index (entspricht der Spaltenzahl)
+Inkrement index in Ort/cm fuer die Zielkoordinaten Ix, Iz.
+Dann folgt Ix, Iz, Feldwert/Gauss
+
+Hier laufen jetzt x und z in der Labordefinition,
+x || Feld-Eintrittskante,  z grob in Strahlrichtung (bis auf eine Drehung
+des Magneten im Labor). In anderen Worten: diese Indices beziehen sich auf
+die Eintrittskante des Magneten und die Ablenkrichtung.
+
+Siehe auch Kommentar in Programm convert_map.f
+
+Das Programm cmap_in_omap.f dreht die Feldkarte z.B. entsprechend einer Drehung
+oben<->unten des Magneten in Karten omap**.map (hier steht o fuer oben
+oder original, d.h. Die Original Hebeoesen sind oben).
+
+Files ***.geo, die den Polschuh (mechanische Grenzen) passend zu den
+Feldkarten zeigen:
+polschuh_ic.geo in Index-Einheiten passend zu cmap**.map
+polschuh_io.geo in Index-Einheiten passend zu omap**.geo
+
+Darstellung von Feldkarten:
+Die hierfuer benutzten Programme bereiten Files vor, die hernach mit GLE
+dargestellt werden koennen.
+Kontur-Plots
+Das Programm feld_kontur_punkte.f sucht in cmap**.map mit Hilfe
+linearer Interpolation nach Punkten
+mit vorgegebenem Feldwert. Hierzu sucht es  erst entlang der
+Werte mit festem Index-z nach solchen Punkten  und dann ebenso entlang
+festem Index-x. Die gefundenen Koordinaten werden dann in der Reihenfolge
+der Findung in den File fort.11 geschrieben, aus dem sie dann in Files
+kontur**.dat kopiert werden.
+Eine Gruppe dieser Files kann dann mit kontur_punkte.gle dargestellt werden.
+Das Programm feld_kontur_linie liest die Punkte-Files, z.B. kontur10.dat,
+ordnet sie und schreibt sie in den File fort.12. Dieser kann dann in
+Files lkontur**.dat kopiert und mit kontur_linien.gle geplottet werden.
+Natuerlich kann dann in dem Plotprogramm (GLE) von Index auf cm ,
+z.B. mit dem Inkrement 1.1055, umgeeicht werden.
+
+Die Programme feld_kontur_punkte.f und feld_kontur_linie.f sind
+in dem Programm feld_kontur zusammengefasst, das dann entsprechend
+die zwei Ergebnisfiles fort.11 und fort.12 erzeugt.
+
+Das Programm feld_kontur_o.f ruft zur Benutzung von Karten omap**.map
+auf (siehe unten).
+				
+Umeichen eines Files cmap**.map.
+Mit Hilfe des Programms cmap_in_cmap.f kann der Inhalt einer Feldkarte
+geandert werden, indem die einzelnen Elemente umgerechnet werden 
+Element_neu = (Element_alt +Summand) * Faktor. Das geht fuer die Indices und
+fuer die Feldwerte. Damit kann man z.B. durch Multiplikation der Indices mit
+einem entsprechendem Inkrement (siehe 1. Zeile in cmap**.map)
+Orts-Koordinaten erzeugen. Allerdings sind dann Alle Elemente in der Liste
+real !!!
+
+Bezugspunkt zwischen Indices und Ort des Magneten:
+
+Der Magnet hat eine gerade Eintrittskante, die an einem Ende kurz und an dem
+anderen etwas laenger gebrochen ist. Die Kante mit der kurzen Brechung ist in
+der cmap**.map Notation links, bei kleinen x- und z-Werten. Diese 
+Kante dient als Bezugspunkt. In Koordinaten der Messaparatur liegt dieser
+Punkt bei (Iox,Ioz Original-Indices)
+
+           Iox      Index_x   893
+	   Ioz      Index_z  -776  -6.78  (entsprechend 1.5 mm),
+	   
+wobei der x-Punkt (-776) 1.5 mm vor der Magnetkante liegt Aufbau der
+Hall-Sonde). Er muss also um diese 1.5mm, entsprechend 1.5/.2211 = 6.784 
+in z-Richtung verschoben werden
+
+           Ioz      Index_z  -782.78
+			  
+Die Umrechnung in Indices fuer cmap ist
+
+           Ix = (Iox - Iox_min) / 50 + 1  (mit Iox_min = 940)
+	   Iz = (Ioz_min - Ioz) / 50 + 1  (mit Ioz_min =-300)
+      
+Also sind die cmap Koordinaten fuer diesen Bezugspunkt
+
+           Ibx = (893 - 940)/50 +1     =  0.06
+	   Ibz = (-300 - 782.78)/50 +1 = 10.66
+	   
+Er liegt also in x etwas ausserhalb der Feldkarte, da Icx_min=1.
+
+
+Ray-Trace:
+
+Das Ray-Tracing wird im Bereich der Feldkarte mit den reduzierten
+Indexkoordinaten aus convert_map.f, ix, iz, 
+also direkt mit Nutzung der Files cmap**.map oder omap.map gemacht.
+
+Ein vernuenftiger Startpunkt (Ort des Radiators ist 3cm vor der
+Eintrittskante des Magneten). Der Referenzpunkt in cmap**.map liegt bei
+       Ibx = 0.06, Ibz= 10.66  (siehe oben)
+Ein vernunftiger Eintrittspunkt liegt 2.5 cm in x, also Ibx + 2.26
+       Ieinx = 2.32, Ieinz = 10.66
+Die Geradengleichung fuer den Strahl, der auf den Radiator trifft
+ist, da der Magnet um 12 Grad gedreht ist 
+         Iz = 4.705*Ix - 0.255
+	 Iradz = 7.946 , Iradx = 1.743
+	 
+Entsprechnede Werte fuer Referenzpunkt, Startpunkt und Eintrittspunkt
+in Bezug zur Polkante sind
+
+              (x,z)/Index         cmap**.map           omap**.map
+Referenzpunkt                   (0.06,10.66)         (80.94,10.66)
+Startpunkt (Radiator) mit 78 Grad zur z-Achse
+Geradengleichung (a,b)          (4.705,-0.256)       (4.705,-14.779)
+3cm vor Kante (dz=-2.714)       (1.74,7.946)         (4.83,7.932)
+     10cm vor Kante             (0.348,1.614)        (3.484,1.614)
+Eintrittspunkt (Polkante)       (2.32,10.66)         (5.41,10.66)
+
+Im Programm dbrems_mc.f wird die Lage des Radiators in cm vor
+der Polkante abgefragt.
+
+Die Grenze der Spule (Gesamtbreite 83mm) liegt bei etwa iz=3.152 
+	   
+Das Programm raytrace_feld.f bestimmt Bahnen innerhalb der Feldkarte.
+Hierbei benutzt es zwei Routinen
+su_trace_feld.f macht eine "Runge-Kutta" Bahnfindung. Es benutzt 
+die Routine su_such_feld.f, mit deren Hilfe der Feldwert fuer beliebige
+Indexzahlen (ixv,izv) durch lineare Interpolation bestimmt werden. 
+Diese Interpolation bestimmt zunaechst die die Vorgabe ixv umgebenden 
+Feldpunkte aus der Feldkarte (ix,iz),(ix+1,z),(ix,iz+1),(ix+1,iz+1).
+Es bestimmt dann erst zwei Werte bei ix und ix+1 und dann den Wert 
+dazwischen. Dann wird das bei iz und iz+1  und dazwischen wiederholt.
+Die zwei resultierenden Werte werden gemittelt. 
+Das Ergebnis von raytrace_feld.f steht im File raytrace.dat, der z.B.
+in bahn**.dat umbenannt wird und mit raytrace.gle dargestellt werden kann.
+Im Ergebnisfile wird er letzte Wert fuer Bahnen, die an der Grenze
+Iz = 1 enden linear auf Iz = -10 extrapoliert.
+
+Das Programm raytrace_fucus.f bestimmt den Schnittpunkt zweier Bahnen,
+die um + und - einen Winkel von der Sollrichtung abweichen und somit 
+den Ort der Punkt-Punkt Abbildung. Es benutzt die Routinen
+su_trace_bahn.f, su_such_feld.f und su_find_focus.f .
+su_trace_bahn.f verfolgt die beiden (verschiedene Winkel) Bahnen
+und schreibt sie in ein Feld bahn(2,2,200). Dabei kennzeichnet der 
+erste Index die Bahnen, der zweite die Koordinaten Ix und Iz und der letzte
+ist der Laufindex. Hierzu benoetigt es, wie su_trace_feld.f die Routine 
+su_such_feld. Die Routine su_find_focus.f bestimmt dann den Schnittpunkt der
+beiden Bahnen. Im Hauptprogramm koennen die Energien veraendert werden.
+Die verschiedenen Inhalte des Feldes bahn(2,2,200) werden in fort.20 
+so abgelegt, dass sie mit raytrace_focus.gle dargestellt werden koennen.
+Die Schnittpunkte werden in fort.14 notiert, der ebenfalls vom gle-
+Progamm dargestellt wird.
+
+Das Programm dbrems_mc.f erwuerfelt Elektronenbahnen durch den Magneten.
+Dabei wird folgendermassen vorgegangen:
+Es werden die Emitanzen erwuerfelt,
+es wird die Vielfachstreuung erwuerfelt,
+Daraus folgt ein Punkt auf dem Radiator und ein Winkel, den das
+einlaufende Elektron dort hat. 
+Dann werden Photonen erwuerfelt, die durch einen Kollimator gehen.
+Die bis hierher benoetigten Groessen sind im File su_brems_mc.geo
+abgelegt als
+Emittanz x-Ort, x-Winkel, y-Ort, y-Winkel (in cm mrad)
+Radius-Kollimator/cm, Radiator <-> Koll /cm, t0_rad/cm, d_rad/cm .
+Dies geschieht in der Routine su_brems_mc.f:
+su_brems_mc.f(e0,k,tb,xr,txbe)
+mit e0,k einlaufende Elektronenenergie, Photonenenergie /MeV
+tb resultierender Photonenwinkel/rad, xr Radius auf dem Radiator,
+txbe horizontale Winkelkomponente (Ablenkrichtung) des PBE/rad.
+Daraus wird mit dbr2bs das Gewicht (dsigma/dOmega) des Ereignisses
+bestimmt, dann wird das Elektron mit dsu_trace_mc.f (entspricht
+su_trace_feld.f, nur hier wird doppelt genau gerechnet, 
+s.o., es wird das Ergebnis lediglich nicht
+in einen File, sondern in ein Feld track(2,300) geschrieben),
+su_cut_bildlin.f uebernimmt das track(2,300) und bestimmt den
+Schnittpunkt zwischen track und Bildlinie. Das Ergebnis ist dann ein
+Ort auf der Bild-Linie, der in einem Histogramm akkumuliert wird. 
+Die von 0 verschiedenen Elemente des Histogramms werden bein Durchlauefen
+einer Schleife fuer die PBE-Enregie fuer jede 
+Energie in den File brems_mc.dat so uebergeben, dass der
+von GLE verwertet werden kann ( d.h. zwischen den Ergebnissen steht
+    *     *).
+Fuer die Elektronenenergien, werden die jeweiligen Histogramme 
+ausgewertet und Momente davon in den File fort.16 geschrieben als
+Elektronenenergie/MeV, min-, max-Abstand, deren Differenz,
+Schwerpunkt und Varianz der Verteilung, alles in cm. Diese Files
+koennen in sigma_disp.gle dargestellt werden, z.B. indem man sie in 
+bild*.dat umbenennet.
+
+
+Das Programm et_basisoptik.f errechnet mit Kreisen und Geraden den Weg des
+Primaer-Strahls durch den Endpoint-Tagger, ET, einen Korrektur-Magneten, KM,
+und den main-tagger, MT, zum Beam-Dump. Am Austritt den MT ist einen
+Engstelle, dort ist ein Loch von 60mm Durchmesser, das eventuell etwas
+erweitert werden koennte. Davor liegt aber das Kapton Fenster des MT,
+das natuerlich auch nicht vom Hauptstrahl getroffen werden darf. Leider
+liegen keine guten, genauen Zeichnungen von der MT-Vakuumkammer vor.
+Die Geraete entlang dieses Strahlweges sind in der Auto-CAD Zeichnung
+tagger_halle_*.dwg abgelgt.
